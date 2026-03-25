@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptCraft Pro v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+<!-- KEY MODAL -->
+<div class="overlay {% if has_key %}gone{% endif %}" id="keyOverlay">
+  <div class="key-modal">
+    <div class="key-logo"><span class="logo-mark">✦</span><span class="key-logo-text">Prompt<strong>Craft</strong> Pro</span></div>
+    <div class="key-title">Connect Your Groq API Key</div>
+    <div class="key-sub">Free forever. Get your key at <a href="https://console.groq.com" target="_blank">console.groq.com →</a></div>
+    <div class="key-input-wrap">
+      <input class="key-input" id="keyInput" type="password" placeholder="gsk_…" autocomplete="off" spellcheck="false"
+        oninput="KEY.onInput()" onkeydown="if(event.key==='Enter') KEY.submit()"/>
+      <button class="key-eye" id="keyToggle" onclick="KEY.toggleVisibility()">👁</button>
+    </div>
+    <div class="key-error" id="keyError"></div>
+    <button class="btn-primary w100" id="keySubmit" onclick="KEY.submit()">Connect Free API →</button>
+    <div class="key-note">🔒 Stored server-side only. Never sent anywhere except api.groq.com</div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <span class="logo-mark">✦</span>
+        <div>
+          <div class="brand-name">Prompt<strong>Craft</strong></div>
+          <div class="brand-ver">Pro v4</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" id="navGen"  onclick="APP.switchModule('gen')"><span class="nav-icon">✦</span> Generator</button>
+        <button class="nav-item"        id="navImg"  onclick="APP.switchModule('img')"><span class="nav-icon">🖼</span> Image → Prompt</button>
+        <button class="nav-item"        id="navTok"  onclick="APP.switchModule('tok')"><span class="nav-icon">⚡</span> Token Optimizer</button>
+        <button class="nav-item"        id="navHist" onclick="APP.switchModule('hist')">
+          <span class="nav-icon">📚</span> History
+          {% if hist_count > 0 %}<span class="nav-badge">{{ hist_count }}</span>{% endif %}
+        </button>
+      </nav>
+    </div>
+    <div class="sidebar-bottom">
+      <button class="key-status-btn {% if has_key %}connected{% endif %}" id="keyStatusBtn" onclick="KEY.showModal()">
+        <span class="status-dot"></span>
+        <span id="keyStatusText">{% if has_key %}API Connected{% else %}No API Key{% endif %}</span>
+      </button>
+      <div class="sidebar-pills">
+        <span class="pill">7 Models</span>
+        <span class="pill">10 Frameworks</span>
+        <span class="pill">Free</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══ MODULE: GENERATOR ══ -->
+    <div id="genModule" class="module active">
+      <div class="two-panel">
+
+        <!-- LEFT: INPUT -->
+        <div class="panel-left">
+          <div class="panel-header">
+            <h1 class="panel-title">Generate Prompt</h1>
+            <p class="panel-sub">Describe what you want. Get a production-ready prompt for any AI.</p>
+          </div>
+
+          <!-- Templates -->
+          <div class="section-label">Quick Templates</div>
+          <div class="template-scroll" id="templateScroll">
+            <div class="template-loading">Loading templates…</div>
+          </div>
+
+          <!-- Goal -->
+          <div class="section-label" style="margin-top:16px">Your Goal</div>
+          <div class="textarea-wrap">
+            <textarea id="goalInput" class="goal-input" rows="5"
+              placeholder="Describe what you want the AI to do. Be specific — include your audience, format, and any key requirements…"
+              oninput="GEN.onGoalInput(this)"></textarea>
+            <div class="textarea-meta">
+              <span id="genTokenCount">0 tokens</span>
+              <span id="genCharCount">0 chars</span>
+            </div>
+          </div>
+
+          <!-- Model + Category -->
+          <div class="cfg-row">
+            <div class="cfg-item">
+              <label class="cfg-label">Target Model</label>
+              <select class="cfg-select" id="g_model">
+                <option value="claude">Claude 4.6</option>
+                <option value="chatgpt">ChatGPT / GPT-4o</option>
+                <option value="gpt5">GPT-5</option>
+                <option value="gemini">Gemini 2.5 Pro</option>
+                <option value="deepseek">DeepSeek R1</option>
+                <option value="grok">Grok 3</option>
+                <option value="universal">Universal</option>
+              </select>
+            </div>
+            <div class="cfg-item">
+              <label class="cfg-label">Category</label>
+              <select class="cfg-select" id="g_cat">
+                <option value="auto">Auto-detect</option>
+                <option value="writing">Writing</option>
+                <option value="coding">Coding</option>
+                <option value="analysis">Analysis</option>
+                <option value="creative">Creative</option>
+                <option value="business">Business</option>
+                <option value="data">Data</option>
+                <option value="education">Education</option>
+                <option value="agentic">Agentic</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Advanced accordion -->
+          <button class="accordion-btn" id="advBtn" onclick="GEN.toggleAdvanced()">
+            <span>Advanced Options</span><span id="advArrow">▼</span>
+          </button>
+          <div class="accordion-body hidden" id="advBody">
+            <div class="cfg-row">
+              <div class="cfg-item">
+                <label class="cfg-label">Framework</label>
+                <select class="cfg-select" id="g_fw">
+                  <option value="RISEN">RISEN (Expert)</option>
+                  <option value="COAST">COAST (Expert)</option>
+                  <option value="BROKE">BROKE (Expert)</option>
+                  <option value="ROSES">ROSES (Expert)</option>
+                  <option value="CARE">CARE (Advanced)</option>
+                  <option value="RACE">RACE (Advanced)</option>
+                  <option value="TRACE">TRACE (Advanced)</option>
+                  <option value="PTCF">PTCF (Gemini)</option>
+                  <option value="RTF">RTF (Simple)</option>
+                  <option value="APE">APE (Simple)</option>
+                  <option value="chain">Chain Prompt</option>
+                </select>
+              </div>
+              <div class="cfg-item">
+                <label class="cfg-label">Complexity</label>
+                <select class="cfg-select" id="g_cplx">
+                  <option value="auto">Auto-detect</option>
+                  <option value="simple">Simple</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+            </div>
+            <label class="cfg-label" style="margin-top:12px">Tone</label>
+            <div class="chip-row" id="toneRow">
+              <div class="chip on" data-v="professional">Professional</div>
+              <div class="chip" data-v="technical">Technical</div>
+              <div class="chip" data-v="friendly">Friendly</div>
+              <div class="chip" data-v="creative">Creative</div>
+              <div class="chip" data-v="concise">Concise</div>
+              <div class="chip" data-v="authoritative">Authoritative</div>
+              <div class="chip" data-v="persuasive">Persuasive</div>
+              <div class="chip" data-v="academic">Academic</div>
+            </div>
+            <label class="cfg-label" style="margin-top:12px">Techniques</label>
+            <div class="chip-row" id="techRow">
+              <div class="chip on" data-v="cot">Chain-of-Thought</div>
+              <div class="chip on" data-v="fewshot">Few-Shot</div>
+              <div class="chip on" data-v="role">Role Assignment</div>
+              <div class="chip" data-v="selfcheck">Self-Check</div>
+              <div class="chip" data-v="xml">XML Tags</div>
+              <div class="chip" data-v="constraints">Hard Constraints</div>
+              <div class="chip" data-v="cod">Chain-of-Draft</div>
+              <div class="chip" data-v="negative">Negative Examples</div>
+              <div class="chip" data-v="reflexion">Reflexion</div>
+              <div class="chip" data-v="tot">Tree of Thoughts</div>
+              <div class="chip" data-v="directional_stimulus">Directional Stimulus</div>
+              <div class="chip" data-v="primacy">Primacy/Recency</div>
+            </div>
+            <label class="cfg-label" style="margin-top:12px">⚡ Cheat Codes</label>
+            <div class="chip-row" id="cheatRow">
+              <div class="chip cheat" data-v="claude_xml">Claude XML</div>
+              <div class="chip cheat" data-v="claude_effort">Effort Control</div>
+              <div class="chip cheat" data-v="claude_cache">Prompt Cache</div>
+              <div class="chip cheat" data-v="token_budget">Token Budget</div>
+              <div class="chip cheat" data-v="gpt_json">GPT JSON Mode</div>
+              <div class="chip cheat" data-v="gemini_schema">Gemini Schema</div>
+              <div class="chip cheat" data-v="deepseek_r1_reasoning">DeepSeek R1</div>
+              <div class="chip cheat" data-v="grok_search">Grok Search</div>
+            </div>
+          </div>
+
+          <button class="btn-generate" id="genBtn" onclick="GEN.generate()">
+            ✦ Generate Prompt
+          </button>
+        </div>
+
+        <!-- RIGHT: OUTPUT -->
+        <div class="panel-right">
+          <!-- Empty state -->
+          <div class="empty-state" id="genEmpty">
+            <div class="empty-icon">✦</div>
+            <div class="empty-title">Your prompt will appear here</div>
+            <div class="empty-sub">Describe your goal on the left and click Generate</div>
+            <div class="empty-features">
+              <div class="ef-item">🏆 Claude thinking style</div>
+              <div class="ef-item">⚡ Token-optimized version</div>
+              <div class="ef-item">🎯 7 model variants</div>
+              <div class="ef-item">🔄 Unlimited refinement</div>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div class="gen-loading hidden" id="genLoading">
+            <div class="loading-spinner"></div>
+            <div class="loading-steps" id="loadingSteps">
+              <div class="lstep" id="ls1">Detecting intent & domain…</div>
+              <div class="lstep" id="ls2">Selecting optimal framework…</div>
+              <div class="lstep" id="ls3">Injecting domain expertise…</div>
+              <div class="lstep" id="ls4">Applying cheat codes…</div>
+              <div class="lstep" id="ls5">Structuring all sections…</div>
+              <div class="lstep" id="ls6">Scoring & assembling…</div>
+            </div>
+          </div>
+
+          <!-- Result -->
+          <div class="gen-result hidden" id="genResult">
+
+            <!-- Score -->
+            <div class="score-card">
+              <div class="score-ring-wrap">
+                <svg class="score-svg" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" stroke-width="4"/>
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="var(--accent)" stroke-width="4"
+                    stroke-linecap="round" stroke-dasharray="175.9"
+                    stroke-dashoffset="175.9" id="scoreRingFill"
+                    style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1.2s ease,stroke .4s"/>
+                </svg>
+                <div class="score-num" id="scoreNum">0</div>
+              </div>
+              <div class="score-info">
+                <div class="score-grade" id="scoreGrade">Generating…</div>
+                <div class="score-sub" id="scoreSub"></div>
+                <div class="score-bars" id="scoreBars"></div>
+              </div>
+            </div>
+
+            <!-- Prompt diagram -->
+            <div class="diagram-card" id="diagramCard">
+              <div class="card-label">Prompt Structure</div>
+              <div id="promptDiagram"></div>
+            </div>
+
+            <!-- Analysis -->
+            <div class="result-card" id="analysisCard">
+              <div class="card-label">Intent Analysis</div>
+              <div id="genAnalysis"></div>
+            </div>
+
+            <!-- Sections -->
+            <div class="result-card" id="sectionsCard">
+              <div class="card-label">Generated Prompt Sections</div>
+              <div id="genSections"></div>
+            </div>
+
+            <!-- Model tabs -->
+            <div class="result-card">
+              <div class="card-label">Export by Model</div>
+              <div class="model-tabs" id="modelTabs">
+                <button class="mtab active" data-m="claude"    onclick="GEN.switchModel('claude')">Claude</button>
+                <button class="mtab" data-m="chatgpt"          onclick="GEN.switchModel('chatgpt')">ChatGPT</button>
+                <button class="mtab" data-m="gemini"           onclick="GEN.switchModel('gemini')">Gemini</button>
+                <button class="mtab" data-m="gpt5"             onclick="GEN.switchModel('gpt5')">GPT-5</button>
+                <button class="mtab" data-m="deepseek"         onclick="GEN.switchModel('deepseek')">DeepSeek</button>
+                <button class="mtab" data-m="grok"             onclick="GEN.switchModel('grok')">Grok</button>
+                <button class="mtab" data-m="universal"        onclick="GEN.switchModel('universal')">Universal</button>
+              </div>
+              <div class="prompt-output" id="modelOutput"></div>
+              <div class="output-actions">
+                <button class="btn-copy" onclick="GEN.copyModel()" id="copyModelBtn">Copy</button>
+                <button class="btn-copy" onclick="GEN.copyOptimized()" id="copyOptBtn">⚡ Copy Optimized</button>
+                <button class="btn-copy" onclick="GEN.downloadAll()">↓ Download All</button>
+              </div>
+            </div>
+
+            <!-- Refine -->
+            <div class="refine-card">
+              <div class="card-label" id="refineLabel">Refine & Iterate</div>
+              <div class="refine-quick" id="refineQuick"></div>
+              <div class="refine-row">
+                <textarea class="refine-input" id="refineFeedback" rows="2"
+                  placeholder="Describe what to improve… e.g. 'Make constraints more specific' or 'Add a few-shot example'"></textarea>
+                <button class="btn-refine" id="refineBtn" onclick="GEN.refine()">⟳ Refine</button>
+              </div>
+            </div>
+
+            <!-- Explanations -->
+            <div class="result-card">
+              <div class="card-label">Techniques Applied</div>
+              <div id="genExpls"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div><!-- /genModule -->
+
+    <!-- ══ MODULE: IMAGE → PROMPT ══ -->
+    <div id="imgModule" class="module hidden">
+      <div class="two-panel">
+
+        <!-- LEFT -->
+        <div class="panel-left">
+          <div class="panel-header">
+            <h1 class="panel-title">Image → Prompt</h1>
+            <p class="panel-sub">Upload any UI screenshot. Get a build-ready prompt for Bolt.new, v0, Cursor, or Claude.</p>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-zone" id="uploadZone"
+            ondrop="IMG.onDrop(event)" ondragover="IMG.onDragOver(event)" ondragleave="IMG.onDragLeave(event)"
+            onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon" id="uploadIcon">🖼</div>
+            <div class="upload-title" id="uploadTitle">Drop image here or click to upload</div>
+            <div class="upload-sub">PNG, JPG, WEBP — max 4MB</div>
+            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="IMG.onFileSelect(event)"/>
+          </div>
+          <img id="imgPreview" class="img-preview hidden" alt="Preview"/>
+
+          <!-- Framework selector -->
+          <div class="section-label" style="margin-top:16px">Target Framework</div>
+          <div class="fw-grid" id="fwGrid">
+            <div class="fw-btn active" data-fw="react"    onclick="IMG.selectFw(this)">⚛️ React</div>
+            <div class="fw-btn" data-fw="nextjs"          onclick="IMG.selectFw(this)">▲ Next.js</div>
+            <div class="fw-btn" data-fw="vue"             onclick="IMG.selectFw(this)">💚 Vue 3</div>
+            <div class="fw-btn" data-fw="html"            onclick="IMG.selectFw(this)">🌐 HTML/CSS</div>
+            <div class="fw-btn" data-fw="tailwind"        onclick="IMG.selectFw(this)">🎨 Tailwind</div>
+            <div class="fw-btn" data-fw="flutter"         onclick="IMG.selectFw(this)">🐦 Flutter</div>
+          </div>
+
+          <!-- Prompt type -->
+          <div class="section-label" style="margin-top:16px">Prompt Type</div>
+          <div class="pt-grid" id="ptGrid">
+            <div class="pt-btn active" data-pt="build"   onclick="IMG.selectPt(this)">
+              <div class="pt-icon">🔨</div><div class="pt-label">Build This</div>
+              <div class="pt-desc">Recreate from scratch</div>
+            </div>
+            <div class="pt-btn" data-pt="improve"        onclick="IMG.selectPt(this)">
+              <div class="pt-icon">⚡</div><div class="pt-label">Improve This</div>
+              <div class="pt-desc">Find issues & fix</div>
+            </div>
+            <div class="pt-btn" data-pt="describe"       onclick="IMG.selectPt(this)">
+              <div class="pt-icon">📝</div><div class="pt-label">Describe This</div>
+              <div class="pt-desc">Plain English description</div>
+            </div>
+          </div>
+
+          <button class="btn-generate" id="imgBtn" onclick="IMG.analyze()" disabled>
+            🖼 Analyze & Generate Prompt
+          </button>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="panel-right">
+          <div class="empty-state" id="imgEmpty">
+            <div class="empty-icon">🖼</div>
+            <div class="empty-title">Upload a UI screenshot</div>
+            <div class="empty-sub">We'll analyze every detail — colors, components, layout, typography — and generate a production-ready build prompt</div>
+            <div class="empty-features">
+              <div class="ef-item">🎨 Extracts exact hex colors</div>
+              <div class="ef-item">📐 Detects every component</div>
+              <div class="ef-item">📱 Responsive specifications</div>
+              <div class="ef-item">⚡ Works with Bolt, v0, Cursor</div>
+            </div>
+          </div>
+
+          <div class="gen-loading hidden" id="imgLoading">
+            <div class="loading-spinner" style="border-top-color:var(--teal)"></div>
+            <div class="loading-steps">
+              <div class="lstep" id="il1">Analyzing layout structure…</div>
+              <div class="lstep" id="il2">Extracting color palette…</div>
+              <div class="lstep" id="il3">Detecting components…</div>
+              <div class="lstep" id="il4">Identifying interactions…</div>
+              <div class="lstep" id="il5">Generating build prompt…</div>
+            </div>
+          </div>
+
+          <div class="gen-result hidden" id="imgResult">
+            <!-- Visual analysis summary -->
+            <div class="result-card">
+              <div class="card-label">Visual Analysis</div>
+              <div id="imgAnalysis"></div>
+            </div>
+            <!-- Generated prompt -->
+            <div class="result-card">
+              <div class="card-label">Generated Prompt
+                <span id="imgComplexity" class="complexity-badge"></span>
+              </div>
+              <div class="prompt-output" id="imgOutput"></div>
+              <div class="output-actions">
+                <button class="btn-copy" onclick="IMG.copy()" id="imgCopyBtn">Copy Prompt</button>
+                <button class="btn-copy" onclick="IMG.download()">↓ Download</button>
+              </div>
+            </div>
+            <!-- Tips -->
+            <div class="result-card" id="imgTipsCard">
+              <div class="card-label">Build Tips</div>
+              <div id="imgTips"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /imgModule -->
+
+    <!-- ══ MODULE: TOKEN OPTIMIZER ══ -->
+    <div id="tokModule" class="module hidden">
+      <div class="two-panel">
+        <div class="panel-left">
+          <div class="panel-header">
+            <h1 class="panel-title">Token Optimizer</h1>
+            <p class="panel-sub">Paste any prompt. Get 3 compressed versions with full waste analysis.</p>
+          </div>
+          <div class="textarea-wrap">
+            <textarea id="tokInput" class="goal-input" rows="8"
+              placeholder="Paste your prompt here…"
+              oninput="UI.liveCount(this,'tc1','tc2')"></textarea>
+            <div class="textarea-meta">
+              <span id="tc1">0 tokens</span>
+              <span id="tc2">0 chars</span>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-item">
+              <label class="cfg-label">Target Model</label>
+              <select class="cfg-select" id="t_model">
+                <option value="universal">Universal</option>
+                <option value="claude">Claude 4.6</option>
+                <option value="chatgpt">ChatGPT</option>
+                <option value="gemini">Gemini</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="grok">Grok 3</option>
+              </select>
+            </div>
+            <div class="cfg-item">
+              <label class="cfg-label">Level</label>
+              <select class="cfg-select" id="t_level">
+                <option value="balanced">Balanced (30-45%)</option>
+                <option value="aggressive">Aggressive (50-70%)</option>
+                <option value="ultra">Ultra (70-85%)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn-generate" style="flex:1" onclick="TOK.run()">⚡ Optimize Tokens</button>
+            <button class="btn-secondary" onclick="TOK.loadExample()">Example</button>
+            <button class="btn-secondary" onclick="TOK.clear()">Clear</button>
+          </div>
+        </div>
+        <div class="panel-right">
+          <div class="empty-state" id="tokEmpty">
+            <div class="empty-icon">⚡</div>
+            <div class="empty-title">Paste a prompt to optimize</div>
+            <div class="empty-sub">Reduce tokens by 30-85% while preserving 100% of intent</div>
+          </div>
+          <div class="gen-loading hidden" id="tokLoading">
+            <div class="loading-spinner" style="border-top-color:var(--teal)"></div>
+            <div class="loading-steps">
+              <div class="lstep" id="tl1">Tokenizing & counting…</div>
+              <div class="lstep" id="tl2">Detecting waste patterns…</div>
+              <div class="lstep" id="tl3">Compressing…</div>
+              <div class="lstep" id="tl4">Validating semantic integrity…</div>
+              <div class="lstep" id="tl5">Generating tips…</div>
+            </div>
+          </div>
+          <div class="gen-result hidden" id="tokResult">
+            <div class="metrics-row">
+              <div class="metric"><div class="metric-val red" id="tm1">0</div><div class="metric-lbl">Original</div></div>
+              <div class="metric"><div class="metric-val green" id="tm2">0</div><div class="metric-lbl">Optimized</div><div class="metric-delta" id="td2"></div></div>
+              <div class="metric"><div class="metric-val gold" id="tm3">0</div><div class="metric-lbl">Reduction</div></div>
+              <div class="metric"><div class="metric-val teal" id="tm4">0</div><div class="metric-lbl">Retention</div></div>
+            </div>
+            <div class="result-card"><div class="card-label">Token Breakdown</div><div id="tokBreakdown"></div></div>
+            <div class="result-card"><div class="card-label">Issues Found</div><div id="tokIssues"></div></div>
+            <div class="result-card">
+              <div class="card-label">Optimized Versions</div>
+              <div class="ver-tabs">
+                <button class="vtab active" data-v="balanced"  onclick="TOK.switchVer('balanced')">Balanced</button>
+                <button class="vtab" data-v="aggressive"       onclick="TOK.switchVer('aggressive')">Aggressive</button>
+                <button class="vtab" data-v="ultra"            onclick="TOK.switchVer('ultra')">Ultra</button>
+              </div>
+              <div class="prompt-output" id="tokOutput"></div>
+              <div class="output-actions">
+                <button class="btn-copy" onclick="TOK.copy()" id="tokCopyBtn">Copy</button>
+                <button class="btn-copy" onclick="TOK.download()">↓ Download</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tokModule -->
+
+    <!-- ══ MODULE: HISTORY ══ -->
+    <div id="histModule" class="module hidden">
+      <div class="panel-header">
+        <h1 class="panel-title">History</h1>
+        <p class="panel-sub">All generated prompts auto-saved. Click any entry to reload.</p>
+      </div>
+      <div id="histList"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No history yet</div><div class="empty-sub">Generate a prompt to auto-save it here</div></div></div>
+    </div>
+
+  </main>
+</div><!-- /shell -->
+
+<div id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+<script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+<script src="{{ url_for('static', filename='js/optimizer.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  KEY.init({{ 'true' if has_key else 'false' }});
+  GEN.init();
+  TOK.init();
+  IMG.init();
+  GEN.loadTemplates();
+});
+</script>
+</body>
+</html>
